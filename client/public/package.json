@@ -1,0 +1,17 @@
+{
+  "name": "casita-thermal-demo-app-client",
+  "version": "1.2.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "jrmerz@ucdavis.edu",
+  "license": "ISC",
+  "dependencies": {
+    "@ucd-lib/cork-app-load": "^0.3.2",
+    "@ucd-lib/cork-app-utils": "^5.1.0",
+    "@ucd-lib/pngjs": "^5.0.0",
+    "lit": "^2.0.0-rc.2"
+  }
+}
