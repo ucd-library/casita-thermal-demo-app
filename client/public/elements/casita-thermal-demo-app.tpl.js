@@ -23,6 +23,10 @@ export function styles() {
       padding: 10px;
       background-color: white;
     }
+    #chart {
+      height: 600px;
+      width: 1200px;
+    }
   `;
 
   return [elementStyles];
@@ -34,23 +38,14 @@ return html`
 <div style="display:flex; flex-wrap: wrap;">
 
   <select @change="${this._onSelectChange}">
+    <option></option>
     ${this.times.map((item, index) => html`
-      <option value="${index}">${item.date}</option>
+      <option value="${index}">${item.label}</option>
     `)}
   </select>
 
-  <div>
-    ${this.selected.labels.map((item, index) => html`
-      <button value="${index}"  @click="${this._onButtonClicked}">${item}</button>
-    `)}
-  </div>
-
   <div>Classify</div>
-  <input type="number" placeholder="Classify" value="3" @change="${this._onClassifyChange}"/>
-
-  <div>Scale</div>
-  <input type="number" placeholder="Scale" value="2" @change="${this._onScaleChange}"/>
-
+  <input type="number" placeholder="Classify" value="2" @change="${this._onClassifyChange}"/>
 
 </div>
 
@@ -58,77 +53,29 @@ return html`
   <div>
     <div>Average</div>
     <div class="grouped">
-      <block-image-product
-        product="${this.product}"
-        x="${this.x}"
-        y="${this.y}"
-        date="${this.date}"
-        scale="${this.scale}"
-        type="average">
-      </block-image-product>
-      <block-image-product
-        @image-mouse-move="${this._onImageMouseMove}"
-        product="${this.product}"
-        x="${this.x}"
-        y="${this.y}"
-        date="${this.date}"
-        scale="${this.scale}"
-        type="classified"
-        classify="${this.classify}">
-      </block-image-product>
+      <leaflet-map type="average"></leaflet-map>
     </div>
   </div>
 
   <div>
     <div>Raw</div>
     <div class="grouped">
-      <block-image-product
-        product="${this.product}"
-        x="${this.x}"
-        y="${this.y}"
-        date="${this.date}"
-        scale="${this.scale}"
-        type="raw">
-      </block-image-product>
-      <block-image-product
-        @image-mouse-move="${this._onImageMouseMove}"
-        product="${this.product}"
-        x="${this.x}"
-        y="${this.y}"
-        date="${this.date}"
-        scale="${this.scale}"
-        type="classified"
-        classify="${this.classify}">
-      </block-image-product>
+      <leaflet-map type="raw"></leaflet-map>
     </div>
   </div>
 
   <div>
     <div>Min</div>
-    <block-image-product
-      @image-mouse-move="${this._onImageMouseMove}"
-      product="${this.product}"
-      x="${this.x}"
-      y="${this.y}"
-      date="${this.date}"
-      scale="${this.scale}"
-      type="min">
-    </block-image-product>
+    <leaflet-map type="min"></leaflet-map>
   </div>
 
   <div>
     <div>Max</div>
-    <block-image-product
-      @image-mouse-move="${this._onImageMouseMove}"
-      product="${this.product}"
-      x="${this.x}"
-      y="${this.y}"
-      date="${this.date}"
-      scale="${this.scale}"
-      type="max">
-    </block-image-product>
+    <leaflet-map type="max"></leaflet-map>
   </div>
 </div>
+
+<div id="chart"></div>
 
 
 <div id="info"></div>

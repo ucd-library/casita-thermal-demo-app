@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "watch": "cd client && webpack --config webpack-watch.config.js --watch",
-    "dist": "cd client && ./build.sh"
+    "dist": "cd client && webpack --config webpack-watch.config.js"
   },
   "author": "",
   "license": "ISC",

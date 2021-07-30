@@ -12,6 +12,7 @@
     "@ucd-lib/cork-app-load": "^0.3.2",
     "@ucd-lib/cork-app-utils": "^5.1.0",
     "@ucd-lib/pngjs": "^5.0.0",
+    "leaflet": "^1.7.1",
     "lit": "^2.0.0-rc.2"
   }
 }

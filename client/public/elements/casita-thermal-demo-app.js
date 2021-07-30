@@ -4,6 +4,7 @@ import {PNG} from "@ucd-lib/pngjs";
 
 
 import "./block-image-product"
+import "./leaflet-map"
 
 export default class CasitaThermalDemoApp extends LitElement {
 
@@ -55,6 +56,7 @@ export default class CasitaThermalDemoApp extends LitElement {
     data.forEach(item => {
       if( !times[item.date] ) {
         times[item.date] = {
+          label : item.date.replace(/T/, ' ').replace(/\..*/, '')+' - '+item.product,
           date : item.date,
           dateObj : new Date(item.date),
           labels : [],
@@ -74,45 +76,119 @@ export default class CasitaThermalDemoApp extends LitElement {
 
   firstUpdated() {
     this.info = this.shadowRoot.querySelector('#info');
-    Array.from(this.shadowRoot.querySelectorAll('block-image-product'))
-      .forEach(ele => this.products[ele.getAttribute('type')] = ele);
+
+    setTimeout(() => {
+      this.maps = this.shadowRoot.querySelectorAll('leaflet-map');
+      this.maps.forEach(ele => {
+        ele.map.addEventListener('zoomend', e => this._onMoveEnd(ele.map, ele.map.getBounds()))
+        ele.map.addEventListener('moveend', e => this._onMoveEnd(ele.map, ele.map.getBounds()))
+        ele.map.addEventListener('mousemove', e => this._onMapMouseMove(e));
+        ele.map.addEventListener('click', e => this._onMapClick(e));
+      });
+    }, 500);
   }
 
-  _onImageMouseMove(e) {
-    let coord = e.detail;
-    let data = {};
-    let html = "";
+  _onMapMouseMove(e) {
+    let y = Math.floor(e.latlng.lat * -1);
+    let x = Math.floor(e.latlng.lng);
 
-    for( let key in this.products ) {
-      data[key] = this.products[key].pngImage.data[
-        (coord.x + (coord.y * this.products[key].pngImage.width)) * 4
-      ];
+    let data = {}, ix, iy;
+
+    for( let element of this.maps ) {
+      for( let image of element.images ) {
+        image = image.element;
+        if( image.x <= x && image.x + image.width >= x ) {
+          if( image.y <= y && image.y + image.height >= y ) {
+            // debugger;
+            ix = x - image.x;
+            iy = y - image.y;
+
+            data.x = ix;
+            data.y = iy;
+
+            data[image.type] = image.pngImage.data[(ix + (iy * image.width)) * 4]
+          }
+        }
+      }
+    }
+
+    let html = '';
+    for( let key in data ) {
       html += `<div>${key}: ${data[key]}</div>`;
     }
 
     this.info.innerHTML = html;
   }
 
-  _onSelectChange(e) {
-    let item = this.times[parseInt(e.currentTarget.value)];
-    this.selected = item;
+  _onMoveEnd(eventMap, bounds) {
+    if( this.moveListenDelay === true ) return;
+    this.moveListenDelay = true;
+    setTimeout(() => {
+      this.moveListenDelay = false;
+    }, 100);
+
+    this.maps.forEach(ele => {
+      if( ele.map === eventMap ) return;
+      ele.map.fitBounds(bounds);
+    });
   }
 
-  _onButtonClicked(e) {
-    let image = this.selected.images[parseInt(e.currentTarget.value)];
-
-    this.product = image.product;
-    this.x = image.x;
-    this.y = image.y;
-    this.date = image.date;
+  _onSelectChange(e) {
+    if( !e.currentTarget.value ) return;
+    let item = this.times[parseInt(e.currentTarget.value)];
+    this.selected = item;
+    this.maps.forEach(map => map.loadImages(item.images, this.classify));
   }
 
   _onClassifyChange(e) {
     this.classify = parseInt(e.currentTarget.value);
+    this.maps.forEach(map => map.setClassify(this.classify));
   }
 
-  _onScaleChange(e) {
-    this.scale = parseInt(e.currentTarget.value);
+  async _onMapClick(e) {
+    this.shadowRoot.querySelector('#chart').style.display = 'none';
+
+    let y = Math.floor(e.latlng.lat * -1);
+    let x = Math.floor(e.latlng.lng);
+
+    let ix = -1, iy = -1;
+    let id;
+
+    for( let element of this.maps ) {
+      for( let image of element.images ) {
+        image = image.element;
+        if( image.x <= x && image.x + image.width >= x ) {
+          if( image.y <= y && image.y + image.height >= y ) {
+            // debugger;
+            ix = x - image.x;
+            iy = y - image.y;
+            id = image.blocks_ring_buffer_id;
+            break;
+          }
+        }
+      }
+    }
+
+    let resp = await fetch(this.host+`px-values/${id}/${ix}/${iy}`);
+    let json = await resp.json();
+
+    json = json.map(item => [item.date, item.value]);
+    json.unshift(['Date', 'Value']);
+
+    var data = google.visualization.arrayToDataTable(json);
+
+    var options = {
+      title: 'Thermal (Band 7) Data',
+      legend: { position: 'bottom' }
+    };
+
+    if( !this.chart ) {
+      this.chart = new google.visualization.LineChart(this.shadowRoot.querySelector('#chart'));
+    }
+    this.shadowRoot.querySelector('#chart').style.display = 'block';
+    
+
+    this.chart.draw(data, options);
   }
 
 }

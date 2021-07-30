@@ -27,12 +27,26 @@ export default class BlockImageProduct extends LitElement {
     this.render = render.bind(this);
     this.host = APP_CONFIG.dataServer.url+APP_CONFIG.dataServer.thermalApiPath+'/png/';
     this.classify = '';
-    this.scale = 2;
+    this.scale = 1;
+
+    this.loading = false;
+    this.loaded = false;
   }
 
   firstUpdated() {
     this.canvas = this.shadowRoot.querySelector('canvas');
     this.ctx = this.canvas.getContext('2d');
+  }
+
+  setData(data) {
+    this.x = parseInt(data.x);
+    this.y = parseInt(data.y);
+    this.product = data.product;
+    this.date = data.date;
+    this.type = data.type || this.type;
+    this.classify = data.classify;
+    this.blocks_ring_buffer_id = data.blocks_ring_buffer_id;
+    this.requestUpdate();
   }
 
   updated(props) {
@@ -55,10 +69,20 @@ export default class BlockImageProduct extends LitElement {
     this.style.width = (this.pngImage.width*this.scale)+'px';
     this.style.height = (this.pngImage.height*this.scale)+'px';
     this.canvas.style.transform = `scale(${this.scale}, ${this.scale})`;
-    this.canvas.style.transformOrigin = 'top left'
+    this.canvas.style.transformOrigin = 'top left';
+  }
+
+  _dispatchLoadingState() {
+    this.dispatchEvent(new CustomEvent('loading', {
+      detail : {loading: this.loading, loaded: this.loaded}
+    }));
   }
 
   async renderImg() {
+    this.loading = true;
+    this.loaded = false;
+    this._dispatchLoadingState();
+
     let classifyRatio = (this.classify && this.type === 'classified') ? '?ratio='+this.classify : '';
     let resp = await fetch(
         this.host+
@@ -67,6 +91,8 @@ export default class BlockImageProduct extends LitElement {
     );
     this.rawImageData = await resp.arrayBuffer();
     this.pngImage = await this.createPng(this.rawImageData);
+    this.width = this.pngImage.width;
+    this.height = this.pngImage.height;
 
     this.canvas.setAttribute('width', this.pngImage.width);
     this.canvas.setAttribute('height', this.pngImage.height);
@@ -80,7 +106,16 @@ export default class BlockImageProduct extends LitElement {
 
     this.ctx.putImageData(canvasImageData, 0, 0);
 
+
+    this.loading = false;
+    this.loaded = true;
+    this._dispatchLoadingState();
+
     this.rescale();
+  }
+
+  getDataUrl(type) {
+    return this.canvas.toDataURL(type);
   }
 
   drawC(pngImage, canvasImageData) {
