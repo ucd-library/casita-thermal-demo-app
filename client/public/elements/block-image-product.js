@@ -38,7 +38,8 @@ export default class BlockImageProduct extends LitElement {
     this.ctx = this.canvas.getContext('2d');
   }
 
-  setData(data) {
+  setData(data, appElement) {
+    this.appElement = appElement;
     this.x = parseInt(data.x);
     this.y = parseInt(data.y);
     this.product = data.product;
@@ -83,10 +84,15 @@ export default class BlockImageProduct extends LitElement {
     this.loaded = false;
     this._dispatchLoadingState();
 
+    let date = this.date;
+    if( !this.classify ) {
+      date = new Date(new Date(date).getTime() - 1000 * 60 * 60).toISOString();
+    }
+
     let classifyRatio = (this.classify && this.type === 'classified') ? '?ratio='+this.classify : '';
     let resp = await fetch(
         this.host+
-        [this.product, this.x, this.y, this.date, this.type].join('/')+
+        [this.product, this.x, this.y, date, this.type].join('/')+
         classifyRatio
     );
     this.rawImageData = await resp.arrayBuffer();
@@ -97,6 +103,8 @@ export default class BlockImageProduct extends LitElement {
     this.canvas.setAttribute('width', this.pngImage.width);
     this.canvas.setAttribute('height', this.pngImage.height);
     let canvasImageData = this.ctx.getImageData(0, 0, this.pngImage.width, this.pngImage.height);
+
+    await this.appElement.stdDevPromise;
 
     if( this.type === "classified" ) {
       this.drawC(this.pngImage, canvasImageData);
@@ -119,6 +127,8 @@ export default class BlockImageProduct extends LitElement {
   }
 
   drawC(pngImage, canvasImageData) {
+
+
     for( let i = 0; i < pngImage.data.length; i += 4 ) {
       canvasImageData.data[i] = pngImage.data[i] >= 1 ? 255 : 0;
       canvasImageData.data[i+1] = 0;
@@ -135,6 +145,7 @@ export default class BlockImageProduct extends LitElement {
       if( pngImage.data[i] > max ) max = pngImage.data[i];
     }
     let ratio = (max-min) / 256;
+    if( max > 1500 ) max = 1500;
 
 
     let val;

@@ -27,6 +27,10 @@ export function styles() {
       height: 600px;
       width: 1200px;
     }
+    #chartAll {
+      height: 600px;
+      width: 1200px;
+    }
   `;
 
   return [elementStyles];
@@ -40,12 +44,12 @@ return html`
   <select @change="${this._onSelectChange}">
     <option></option>
     ${this.times.map((item, index) => html`
-      <option value="${index}">${item.label}</option>
+      <option value="${index}"  ?selected="${this.selectedIndex === index ? 'selected' : ''}" >${item.label}</option>
     `)}
   </select>
 
   <div>Classify</div>
-  <input type="number" placeholder="Classify" value="2" @change="${this._onClassifyChange}"/>
+  <input type="number" placeholder="Classify" value="3" @change="${this._onClassifyChange}"/>
 
 </div>
 
@@ -53,7 +57,7 @@ return html`
   <div>
     <div>Average</div>
     <div class="grouped">
-      <leaflet-map type="average"></leaflet-map>
+      <leaflet-map type="amax-average"></leaflet-map>
     </div>
   </div>
 
@@ -65,17 +69,26 @@ return html`
   </div>
 
   <div>
-    <div>Min</div>
-    <leaflet-map type="min"></leaflet-map>
+    <div>Average Stddev</div>
+    <leaflet-map type="amax-stddev"></leaflet-map>
   </div>
 
   <div>
     <div>Max</div>
-    <leaflet-map type="max"></leaflet-map>
+    <leaflet-map type="amax-max"></leaflet-map>
+  </div>
+
+  <div>
+    <div>Max</div>
+    <leaflet-map type="amax-max"></leaflet-map>
   </div>
 </div>
 
-<div id="chart"></div>
+<div id="chartLoading" style="display:none">Loading values used in average...</div>
+<div id="chart" style="display:none"></div>
+
+<div id="chartAllLoading" style="display:none">Loading all values...</div>
+<div id="chartAll" style="display:none"></div>
 
 
 <div id="info"></div>

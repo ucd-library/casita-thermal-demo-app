@@ -26,7 +26,7 @@ export default class LeafletMap extends LitElement {
     this.initMap();
   }
 
-  async loadImages(images, classify) {
+  async loadImages(images, classify, appElement) {
     this.shadowRoot.querySelector('#loading').style.display = 'block';
 
     this.images.forEach(image => {
@@ -62,7 +62,7 @@ export default class LeafletMap extends LitElement {
     }
 
     await Promise.all(
-      images.map(image => this.addImage(image))
+      images.map(image => this.addImage(image, appElement))
     );
 
     this.shadowRoot.querySelector('#loading').style.display = 'none';
@@ -91,7 +91,7 @@ export default class LeafletMap extends LitElement {
     }
   }
 
-  addImage(data) {
+  addImage(data, appElement) {
     return new Promise((resolve, reject) => {
       let element = document.createElement('block-image-product');
       element.style.display = 'none';
@@ -131,7 +131,7 @@ export default class LeafletMap extends LitElement {
         resolve();
       });
 
-      element.setData(data);
+      element.setData(data, appElement);
     });
   }
 
