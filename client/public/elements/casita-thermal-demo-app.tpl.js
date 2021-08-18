@@ -49,7 +49,7 @@ return html`
   </select>
 
   <div>Classify</div>
-  <input type="number" placeholder="Classify" value="3" @change="${this._onClassifyChange}"/>
+  <input type="number" placeholder="Classify" value="4" @change="${this._onClassifyChange}"/>
 
 </div>
 
@@ -69,7 +69,7 @@ return html`
   </div>
 
   <div>
-    <div>Average Stddev</div>
+    <div>stddev</div>
     <leaflet-map type="amax-stddev"></leaflet-map>
   </div>
 
@@ -79,8 +79,8 @@ return html`
   </div>
 
   <div>
-    <div>Max</div>
-    <leaflet-map type="amax-max"></leaflet-map>
+    <div>Min</div>
+    <leaflet-map type="amax-min"></leaflet-map>
   </div>
 </div>
 

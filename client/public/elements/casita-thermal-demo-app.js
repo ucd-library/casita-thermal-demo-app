@@ -38,7 +38,7 @@ export default class CasitaThermalDemoApp extends LitElement {
     this.times = [];
     this.ration = [];
     this.selected = {labels:[], images:[]};
-    this.classify = 1000;
+    this.classify = 4;
     this.scale = 2;
     this.selectedIndex = -1;
   
