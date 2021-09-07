@@ -85,7 +85,7 @@ export default class BlockImageProduct extends LitElement {
     this._dispatchLoadingState();
 
     let date = this.date;
-    if( !this.classify ) {
+    if( !this.classify && this.type !== 'raw' ) {
       date = new Date(new Date(date).getTime() - 1000 * 60 * 60).toISOString();
     }
 

@@ -5,6 +5,7 @@ import {PNG} from "@ucd-lib/pngjs";
 
 import "./block-image-product"
 import "./leaflet-map"
+import "./event-chart"
 
 export default class CasitaThermalDemoApp extends LitElement {
 
@@ -131,8 +132,8 @@ export default class CasitaThermalDemoApp extends LitElement {
             ix = x - image.x;
             iy = y - image.y;
 
-            data.x = ix;
-            data.y = iy;
+            data.x = ix+1;
+            data.y = iy+1;
 
             data[image.type] = image.pngImage.data[(ix + (iy * image.width)) * 4]
           }
@@ -178,7 +179,7 @@ export default class CasitaThermalDemoApp extends LitElement {
     let x = Math.floor(e.latlng.lng);
 
     let ix = -1, iy = -1;
-    let id, value, average, rawImage;
+    let selectedImage, value, average;
 
     for( let element of this.maps ) {
       for( let image of element.images ) {
@@ -188,37 +189,40 @@ export default class CasitaThermalDemoApp extends LitElement {
             // debugger;
             ix = x - image.x;
             iy = y - image.y;
-            id = image.blocks_ring_buffer_id;
 
             if( image.type === 'raw') {
-              rawImage = image;
-              value = image.pngImage.data[(ix + (iy * image.width)) * 4]
-            } else if( image.type === 'average') {
+              selectedImage = image;
+              value = image.pngImage.data[(ix + (iy * image.width)) * 4];
+              break;
+            } else if( image.type === 'amax-average') {
               average = image.pngImage.data[(ix + (iy * image.width)) * 4]
             }
+
           }
         }
       }
     }
 
-    this._renderAverage(id, ix, iy, value, average, rawImage);
-    this._renderAll(id, ix, iy, value, average, rawImage);
+    this._renderMaxValues(selectedImage, ix+1, iy+1, value);
+    // this._renderAll(image, ix, iy, value, average, rawImage);
   }
 
-  async _renderAverage(id, ix, iy, value, average, rawImage) {
+  async _renderAllOld(image, ix, iy, value, average) {
     this.shadowRoot.querySelector('#chart').style.display = 'none';
     this.shadowRoot.querySelector('#chartLoading').style.display = 'block';
 
     let date = new Date(this.selected.date);
 
-    let resp = await fetch(this.host+`px-values/${id}/${ix+1}/${iy+1}`);
+    let resp = await fetch(this.host+`px-values/${image.product}/${image.x}/${image.y}/max/${ix+1}/${iy+1}`);
     let json = await resp.json();
 
     let mode = this.getPixelMode(json)+5;
     let rollingAverage = [];
     let rollingAverageMax = 10;
 
-    json = json.map(item => {
+    json = json.map((item, index) => {
+      if( item.value === 8191 ) item.value = json[index-1].value
+
       rollingAverage.push(item.value);
       if( rollingAverage.length > rollingAverageMax ) rollingAverage.shift();
       let ra = rollingAverage.reduce((v, current) => current + v) / rollingAverage.length;
@@ -235,10 +239,66 @@ export default class CasitaThermalDemoApp extends LitElement {
     json.push([(date.getMonth()+1)+'/'+date.getDate()+' '+date.getHours()+':'+date.getMinutes(), value, average, mode, ra])
     json.unshift(['Date', 'Value', 'Average', 'Mode', 'Rolling Average']);
 
+    console.log(json);
     var data = google.visualization.arrayToDataTable(json);
 
     var options = {
-      title: `Data Used For Average - (${rawImage.x}, ${rawImage.y}, ${rawImage.product}) - (${ix}, ${iy})`,
+      title: `Data Used For Average - (${image.x}, ${image.y}, ${image.product}) - (${ix}, ${iy})`,
+      legend: { position: 'bottom' }
+    };
+
+    if( !this.chart ) {
+      this.chart = new google.visualization.LineChart(this.shadowRoot.querySelector('#chart'));
+    }
+
+    this.shadowRoot.querySelector('#chart').style.display = 'block';
+    this.shadowRoot.querySelector('#chartLoading').style.display = 'none';    
+
+    this.chartData = {data, options};
+    this.chart.draw(data, options);
+  }
+
+  async _renderMaxValues(image, ix, iy, value) {
+    this.shadowRoot.querySelector('#chart').style.display = 'none';
+    this.shadowRoot.querySelector('#chartLoading').style.display = 'block';
+
+    let date = new Date(this.selected.date);
+
+    let resp = await fetch(this.host+`px-values/${image.product}/${image.x}/${image.y}/max/${ix+1}/${iy+1}`);
+    let max = await resp.json();
+
+    resp = await fetch(this.host+`px-values/${image.product}/${image.x}/${image.y}/amax-average/${ix+1}/${iy+1}`);
+    let average = {};
+    (await resp.json()).forEach(item => average[item.date] = item);
+
+    resp = await fetch(this.host+`px-values/${image.product}/${image.x}/${image.y}/amax-stddev/${ix+1}/${iy+1}`);
+    let stddev = {};
+    (await resp.json()).forEach(item => stddev[item.date] = item);
+    
+
+    let json = max.map((item, index) => {
+      if( item.value === 8191 ) item.value = max[index-1].value
+
+      let d = new Date(item.date);
+      let avg = (average[item.date] || {}).value || 0;
+      let sd = Math.max(100, Math.min(500, (stddev[item.date] || {}).value || 0));
+      return [
+        (d.getMonth()+1)+'/'+d.getDate()+' '+d.getHours()+':'+d.getMinutes(), 
+        value,
+        item.value, 
+        avg,
+        sd,
+        avg+(sd*4)
+      ]
+    });
+
+    json.unshift(['Date', 'current value', 'max', 'amax-average', 'amax-stddev', 'avg+(stddev*4)']);
+
+    // console.log(json);
+    var data = google.visualization.arrayToDataTable(json);
+
+    var options = {
+      title: `${image.product}, ${image.x}, ${image.y} - (${ix}, ${iy})`,
       legend: { position: 'bottom' }
     };
 
@@ -317,7 +377,6 @@ export default class CasitaThermalDemoApp extends LitElement {
     );
     let rawImageData = await resp.arrayBuffer();
     this.stdDevPngImage = await this.createPng(rawImageData);
-    debugger;
   }
 
   createPng(imageData) {
